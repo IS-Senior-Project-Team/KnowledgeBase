@@ -56,7 +56,7 @@ async function home(request: Request) {
   if (type === DiscordCommandType.ApplicationCommand) {
    
     const { value } = data.options.find(
-      (option: { name: string; value: string }) => option.name === 'name'
+      (option: { name: string; value: string }) => option.name === 'query'
     )
     const jsonResponse = await fetch(`https://btpoufammgplpmrwmwst.supabase.co/functions/v1/vector-search?query=${value}`, {
     headers: {
@@ -66,13 +66,13 @@ async function home(request: Request) {
     },
   }
     );
-    const jsonData = await jsonResponse.json();
+    const textResponse = await jsonResponse.text();
     return json({
       // Type 4 responds with the below message retaining the user's
       // input at the top.
       type: 4,
       data: {
-        content: jsonData["choices"][0]["text"],
+        content: textResponse,
       },
     })
   }
