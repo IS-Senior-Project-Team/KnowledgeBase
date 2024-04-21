@@ -1,5 +1,6 @@
 # IS Senior Project Syllabus    
 ## Content 
+### Sub Content 
 University of North Florida - School of Computing
 Fall 2020 Course Syllabus for
 CIS 4327 – Information Systems Senior
