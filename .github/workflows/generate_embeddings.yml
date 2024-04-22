@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: IS-Senior-Project-Team/embeddings-generator@1
+      - uses: IS-Senior-Project-Team/embeddings-generator@v1
         with:
           supabase-url: 'https://btpoufammgplpmrwmwst.supabase.co'
           supabase-service-role-key: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
