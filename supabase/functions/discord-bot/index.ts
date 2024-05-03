@@ -1,85 +1,93 @@
-// Sift is a small routing library that abstracts away details like starting a
-// listener on a port, and provides a simple function (serve) that has an API
-// to invoke a function for a specific path.
-import { json, serve, validateRequest } from 'https://deno.land/x/sift@0.6.0/mod.ts'
-// TweetNaCl is a cryptography library that we use to verify requests
-// from Discord.
-import nacl from 'https://cdn.skypack.dev/tweetnacl@v1.0.3?dts'
+import { json, serve, validateRequest } from 'https://deno.land/x/sift@0.6.0/mod.ts';
+import nacl from 'https://cdn.skypack.dev/tweetnacl@v1.0.3?dts';
 
 enum DiscordCommandType {
   Ping = 1,
   ApplicationCommand = 2,
 }
 
-// For all requests to "/" endpoint, we want to invoke home() handler.
 serve({
   '/discord-bot': home,
-})
+});
 
-// The main logic of the Discord Slash Command is defined in this function.
 async function home(request: Request) {
-  // validateRequest() ensures that a request is of POST method and
-  // has the following headers.
   const { error } = await validateRequest(request, {
     POST: {
       headers: ['X-Signature-Ed25519', 'X-Signature-Timestamp'],
     },
-  })
+  });
   if (error) {
-    return json({ error: error.message }, { status: error.status })
+    return json({ error: error.message }, { status: error.status });
   }
 
-  // verifySignature() verifies if the request is coming from Discord.
-  // When the request's signature is not valid, we return a 401 and this is
-  // important as Discord sends invalid requests to test our verification.
-  const { valid, body } = await verifySignature(request)
+  const { valid, body } = await verifySignature(request);
   if (!valid) {
-    return json(
-      { error: 'Invalid request' },
-      {
-        status: 401,
-      }
-    )
+    return json({ error: 'Invalid request' }, { status: 401 });
   }
 
-  const { type = 0, data = { options: [] } } = JSON.parse(body)
-  // Discord performs Ping interactions to test our application.
-  // Type 1 in a request implies a Ping interaction.
+  const { type, token, application_id, data = { options: [] } } = JSON.parse(body);
+
   if (type === DiscordCommandType.Ping) {
-    return json({
-      type: 1, // Type 1 in a response is a Pong interaction response type.
-    })
+    return json({ type: 1 });
   }
 
-  // Type 2 in a request is an ApplicationCommand interaction.
-  // It implies that a user has issued a command.
   if (type === DiscordCommandType.ApplicationCommand) {
-   
+    // Send immediate response
+    await sendInitialResponse(token, application_id);
+
     const { value } = data.options.find(
       (option: { name: string; value: string }) => option.name === 'query'
-    )
-    const jsonResponse = await fetch(`https://btpoufammgplpmrwmwst.supabase.co/functions/v1/vector-search?query=${value}`, {
+    );
+
+    // Perform the vector search and update the response
+    fetchVectorSearchAndUpdateResponse(value, token, application_id);
+
+    // Return a deferred response type (type 5)
+    return json({ type: 5 });
+  }
+
+  return json({ error: 'Bad request' }, { status: 400 });
+}
+
+/** Fetch vector search results and update the response */
+async function fetchVectorSearchAndUpdateResponse(query: string, token: string, applicationId: string) {
+  const jsonResponse = await fetch(`https://btpoufammgplpmrwmwst.supabase.co/functions/v1/vector-search?query=${query}`, {
     headers: {
       Authorization: `Bearer ${Deno.env.get('annon_key')}`,
       method: 'POST',
       'Content-Type': 'application/json',
     },
-  }
-    );
-    const textResponse = await jsonResponse.text();
-    return json({
-      // Type 4 responds with the below message retaining the user's
-      // input at the top.
+  });
+  const textResponse = await jsonResponse.text();
+
+  // Update the initial response
+  await fetch(`https://discord.com/api/v8/webhooks/${applicationId}/${token}/messages/@original`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bot ${Deno.env.get('DISCORD_BOT_TOKEN')}`
+    },
+    body: JSON.stringify({
+      content: textResponse,
+    }),
+  });
+}
+
+/** Send an immediate response to Discord */
+async function sendInitialResponse(token: string, applicationId: string) {
+  await fetch(`https://discord.com/api/v8/webhooks/${applicationId}/${token}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bot ${Deno.env.get('DISCORD_BOT_TOKEN')}`
+    },
+    body: JSON.stringify({
       type: 4,
       data: {
-        content: textResponse,
+        content: "Processing your request...",
       },
-    })
-  }
-
-  // We will return a bad request error as a valid Discord request
-  // shouldn't reach here.
-  return json({ error: 'bad request' }, { status: 400 })
+    }),
+  });
 }
 
 /** Verify whether the request is coming from Discord. */
