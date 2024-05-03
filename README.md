@@ -1,5 +1,5 @@
 # KnowledgeBase
-This repository empowers the Discord bot with knowledge to enhance its question-answering capabilities. By enriching the bot's database, it can provide more accurate and helpful responses.
+This repository empowers the IS Senior Project (discord) bot with knowledge to enhance its question-answering capabilities. By enriching the bot's database, it can provide more accurate and helpful responses.
 
 ## Using Slash Commands
 Interact with the bot using slash commands in Discord. Simply type `/` followed by the command to prompt the bot. For example, to ask a question, type:
