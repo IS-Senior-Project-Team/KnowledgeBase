@@ -3,7 +3,7 @@
 ## Quick Start
 Clone the repository:
 ```bash
-git clone https://github.com/yourusername/KnowledgeBase.git
+git clone https://github.com/IS-Senior-Project-Team/KnowledgeBase.git
 cd KnowledgeBase
 ```
 
